@@ -54,3 +54,26 @@ function tearDownDb() {
     console.warn('Deleting database!');
     return mongoose.connection.dropDatabase();
 }
+
+describe('Blog Post API Resource', function() {
+    
+    // starts server with test database url
+    before(function() {
+        return runServer(TEST_DATABASE_URL);
+    });
+
+    // seeds database with test data before each test runs
+    beforeEach(function() {
+        return seedBlogPostData();
+    });
+
+    // zeroes out database after each test has run
+    afterEach(function() {
+        return tearDownDb();
+    });
+
+    // closes server after all tests have run
+    after(function() {
+        return closeServer();
+    });
+});
