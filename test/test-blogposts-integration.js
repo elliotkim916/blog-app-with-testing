@@ -47,3 +47,10 @@ function generateBlogPostData() {
         content: faker.lorem.paragraph()
     }
 }
+
+// deletes database in between tests 
+// to not maintain state between tests
+function tearDownDb() {
+    console.warn('Deleting database!');
+    return mongoose.connection.dropDatabase();
+}
