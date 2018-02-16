@@ -2,16 +2,25 @@
 
 const mongoose = require('mongoose');
 const faker = require('faker');
-
 const chai = require('chai');
 const chaiHttp = require('chai-http');
+
 const expect = chai.expect;
+const should = chai.should();
 
 const {BlogPost} = require('../models');
 const {app, runServer, closeServer} = require('../server');
 const {TEST_DATABASE_URL} = require('../config');
 
 chai.use(chaiHttp);
+
+// deletes database in between tests 
+// to not maintain state between tests
+function tearDownDb() {
+    console.warn('Deleting database!');
+    return mongoose.connection.dropDatabase();
+}
+
 // seed the database
 function seedBlogPostData() {
     console.info('seeding blog post data');
@@ -48,13 +57,6 @@ function generateBlogPostData() {
     }
 }
 
-// deletes database in between tests 
-// to not maintain state between tests
-function tearDownDb() {
-    console.warn('Deleting database!');
-    return mongoose.connection.dropDatabase();
-}
-
 describe('Blog Post API Resource', function() {
 // in testing, mocha is expecting promises!
 
@@ -77,7 +79,6 @@ describe('Blog Post API Resource', function() {
     after(function() {
         return closeServer();
     });
-});
 
 describe('GET endpoint', function() {
     it('should return all blog posts', function() {
@@ -86,28 +87,26 @@ describe('GET endpoint', function() {
             .get('/posts')
             .then(function(_res) {
                 res = _res;
-                expect(res).to.have.status(200);
-                expect(res).to.be(json);
+                expect(res).to.be.status(200);
                 expect(res.body).to.have.length.of.at.least(1);
-                expect(res.body).to.be.a('array');
+
                 return BlogPost.count();
             })
-            .then(function(count) {
-                expect(res.body).to.have.length.of(count);
             
+            .then(function(count) {
+                expect(res.body).to.have.lengthOf(count);
             });
     });
 
     it('should return posts with the right fields', function() {
      // Strategy: Get back all restaurants, and ensure they have expected keys
      let resBlogPost;
-
      return chai.request(app)
         .get('/posts')
         .then(function(res) {
-            expect(res).to.have.status(200);
-            expect(res).to.be(json);
-            expect(res.body).to.have.length.of.at.least(1);
+            expect(res).to.be.status(200);
+            expect(res).to.be.json;
+            expect(res.body).to.be.length.of.at.least(1);
             expect(res.body).to.be.a('array');
 
             res.body.forEach(function(post) {
@@ -121,8 +120,7 @@ describe('GET endpoint', function() {
         .then(function(post) {
             expect(resBlogPost.title).to.equal(post.title);
             expect(resBlogPost.content).to.equal(post.content);
-            expect(resBlogPost.author.firstName).to.equal(post.author.firstName);
-            expect(resBlogPost.author.lastName).to.equal(post.author.lastName);
+            expect(resBlogPost.author).to.equal(post.authorName);
         });   
     });
 
@@ -144,8 +142,10 @@ describe('POST endpoint', function() {
             expect(res.body).to.include.keys('title', 'content', 'author');
             expect(res.body.title).to.equal(newPost.title);
             expect(res.body.content).to.equal(newPost.content);
-            expect(res.body.author.firstName).to.equal(newPost.author.firstName);
-            expect(res.body.author.lastName).to.equal(newPost.author.lastName);
+            expect(res.body.author).to.equal(
+                `${newPost.author.firstName} ${newPost.author.lastName}`
+            );
+            return BlogPost.findById(res.body.id);
         })
         .then(function(post) {
             expect(post.title).to.equal(newPost.title);
@@ -157,35 +157,34 @@ describe('POST endpoint', function() {
 });
 
 describe('PUT endpoint', function() {
-    it('should update a blog post', function() {
+    it('should update the fields you send over', function() {
         const updateData = {
             title: 'SERIOUSLY WHY?',
             content: 'WHY WONT THIS WORK?!?!',
             author: {
-                firstName: 'Tommy',
-                lastName: 'David'
+                firstName: 'Tracy',
+                lastName: 'McGrady'
             }
         };
 
     return BlogPost
         .findOne()
-        .then(function(post) {
+        .then(post => {
             updateData.id = post.id;
 
     return chai.request(app)
         .put(`/posts/${post.id}`)
         .send(updateData);
     })
-    .then(function(res) {
+    .then(res => {
         expect(res).to.have.status(204);
-
         return BlogPost.findById(updateData.id);
     })
-    .then(function(post){
-        expect(post.title).to.equal(updataData.title);
-        expect(post.content).to.equal(updataData.content);
-        expect(post.author.firstName).to.equal(updateData.author.firstName);
-        expect(post.author.lastName).to.equal(updateData.author.lastName);
+    .then(post => {
+        expect(updateData.title).to.equal(post.title);
+        expect(updateData.content).to.equal(post.content);
+        expect(updateData.author.firstName).to.equal(post.author.firstName);
+        expect(updateData.author.lastName).to.equal(post.author.lastName);
     });
     });
 });
@@ -209,5 +208,6 @@ describe('DELETE endpoint', function() {
             expect(_post).to.be.null;
         });
     });
+});
 });
 });
