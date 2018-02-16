@@ -81,6 +81,9 @@ describe('Blog Post API Resource', function() {
     });
 
 describe('GET endpoint', function() {
+// STRATEGY: make a get request to get all existing blog posts, 
+// check that the response has a status of 200 and the length is at least 1
+// and then assert/check that number of posts in res.body is equal to count
     it('should return all blog posts', function() {
         let res;
         return chai.request(app)
@@ -90,6 +93,7 @@ describe('GET endpoint', function() {
                 expect(res).to.be.status(200);
                 expect(res.body).to.have.length.of.at.least(1);
 
+                // will return number of posts in test database
                 return BlogPost.count();
             })
             
@@ -98,8 +102,14 @@ describe('GET endpoint', function() {
             });
     });
 
+    // REMEMBER - res.body is an ARRAY filled with OBJECTS
     it('should return posts with the right fields', function() {
-     // Strategy: Get back all restaurants, and ensure they have expected keys
+// Strategy: Get back all posts, check status, if its json, length, and if its an array
+// res.body is an array, and within that array are objects, so check that each IS an object
+// and check that each object has the necessary keys, THEN -
+// Get the id for one of the blog posts, then return a promise of BlogPost.findById(resBlogPost.id)
+// Then check that the values in our blog post that we got back correspond with those in the database
+
      let resBlogPost;
      return chai.request(app)
         .get('/posts')
@@ -113,7 +123,7 @@ describe('GET endpoint', function() {
                 expect(post).to.be.a('object');
                 expect(post).to.include.keys('title', 'content', 'author');
             });
-
+            
             resBlogPost = res.body[0];
             return BlogPost.findById(resBlogPost.id);
         })
@@ -125,10 +135,10 @@ describe('GET endpoint', function() {
     });
 
 describe('POST endpoint', function() {
-    // strategy: make a POST request with data,
-    // then prove that the restaurant we get back has
-    // right keys, and that `id` is there (which means
-    // the data was inserted into db)
+// STRATEGY: create a new blog post first, then make a post request to /posts, then send the new blog post
+// then check that is has status of 201, json, is an object, has the right keys, and
+// check that the returned object is equal to data that we sent over
+// After that, we retrieve the new post from the db and compare its data to the data we sent over
     it('should add a new blog post', function() {
     const newPost = generateBlogPostData();
 
@@ -157,6 +167,11 @@ describe('POST endpoint', function() {
 });
 
 describe('PUT endpoint', function() {
+// STRATEGY: create an object with the fields you want to update first
+// then retrieve one blog post and set that posts id to our updateData objects id property
+// then return results of making a put request with that id, and send the updated data
+// after sending data, check status to be 204, and then we retrieve the updated post from the db
+// and prove the post in the db contains the updated values
     it('should update the fields you send over', function() {
         const updateData = {
             title: 'SERIOUSLY WHY?',
@@ -190,15 +205,17 @@ describe('PUT endpoint', function() {
 });
 
 describe('DELETE endpoint', function() {
+// STRATEGY: get the id of an existing post from the db, delete it through the api layer
+// check that it has a status of 204
+// and then demonstrate the item is no longer in the database
     it('should delete a blog post', function() {
-    
     let post;
-
     return BlogPost
         .findOne()
         .then(function(_post) {
             post = _post;
-            return chai.request(app).delete(`/posts/${post.id}`)
+            return chai.request(app)
+            .delete(`/posts/${post.id}`)
         })
         .then(function(res) {
             expect(res).to.have.status(204);
