@@ -87,11 +87,14 @@ describe('GET endpoint', function() {
             .then(function(_res) {
                 res = _res;
                 expect(res).to.have.status(200);
+                expect(res).to.be(json);
                 expect(res.body).to.have.length.of.at.least(1);
+                expect(res.body).to.be.a('array');
                 return BlogPost.count();
             })
             .then(function(count) {
                 expect(res.body).to.have.length.of(count);
+            
             });
     });
 
@@ -128,7 +131,7 @@ describe('POST endpoint', function() {
     // then prove that the restaurant we get back has
     // right keys, and that `id` is there (which means
     // the data was inserted into db)
-
+    it('should add a new blog post', function() {
     const newPost = generateBlogPostData();
 
     return chai.request(app)
@@ -150,5 +153,41 @@ describe('POST endpoint', function() {
             expect(post.author.firstName).to.equal(newPost.author.firstName);
             expect(post.author.lastName).to.equal(newPost.author.lastName);
         });
-    });    
+    });
+});
+describe('PUT endpoint', function() {
+    it('should update a blog post', function() {
+        const updateData = {
+            title: 'SERIOUSLY WHY?',
+            content: 'WHY WONT THIS WORK?!?!',
+            author: {
+                firstName: 'Tommy',
+                lastName: 'David'
+            }
+        };
+
+    return BlogPost
+        .findOne()
+        .then(function(post) {
+            updateData.id = post.id;
+
+    return chai.request(app)
+        .put(`/posts/${post.id}`)
+        .send(updateData);
+    })
+    .then(function(res) {
+        expect(res).to.have.status(204);
+
+        return BlogPost.findById(updateData.id);
+    })
+    .then(function(post){
+        expect(post.title).to.equal(updataData.title);
+        expect(post.content).to.equal(updataData.content);
+        expect(post.author.firstName).to.equal(updateData.author.firstName);
+        expect(post.author.lastName).to.equal(updateData.author.lastName);
+    });
+    
+    });
+});
+
 });
